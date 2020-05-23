@@ -27,6 +27,7 @@ Node* new_node_num(int val);
 Node* expr();
 Node *mul();
 Node *primary();
+Node *unary();
 void gen(Node * node);
 
 
@@ -72,14 +73,14 @@ Node* expr()
 // 掛け算系
 Node *mul()
 {
-    Node* node = primary();
+    Node* node = unary();
 
     for(;;) // 無限ループすることで、続く掛け算はすべてくっつける
     {
         if(consume('*'))
-            node = new_node(ND_MUL, node, primary());
+            node = new_node(ND_MUL, node, unary());
         else if(consume('/'))
-            node = new_node(ND_DIV, node, primary());
+            node = new_node(ND_DIV, node, unary());
         else
             return node;
     }
@@ -98,6 +99,16 @@ Node *primary()
         return node;
     }
     return new_node_num(expect_number());
+}
+
+Node *unary()
+{
+    if(consume('+'))
+        return primary();
+    else if(consume('-'))
+        return new_node(ND_SUB, new_node_num(0), primary());
+    else
+        return primary();    
 }
 
 void gen(Node * node)
