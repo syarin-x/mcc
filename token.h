@@ -17,6 +17,7 @@ struct Token {
 	Token *next;		// 次の入力トークン
 	int val;			// kind がTK_NUMのときの数値
 	char *str;			// トークンの文字列
+    int len;            // トークンの長さ
 };
 
 // 現在分析中のトークン
@@ -27,13 +28,13 @@ char *user_input;
 
 // -------------------------------------------------------------
 // プロトタイプ宣言
-bool consume(char op);
-void expect(char op);
+bool consume(char *op);
+void expect(char *op);
 int expect_number(void);
 void error_at(char *loc, char *fmt, ...);
 void error(char *fmt, ...);
 bool at_eof();
-Token *new_token(TokenKind kind, Token *cur, char*str);
+Token *new_token(TokenKind kind, Token *cur, char*str, int len);
 Token *tokenize();
 
 
@@ -42,23 +43,23 @@ Token *tokenize();
 // 関数定義
 
 // トークンを読みすすめる
-bool consume(char op)
+bool consume(char *op)
 {
 	// 着目しているトークンが、期待している記号かどうか？
 	// 例えば、"+"を引数に渡して、次は足し算か？を判定するなどに使う
 	// （そして、足し算の処理をする）
 
 	// 記号の処理をしたいので、記号じゃなかったり、期待する記号じゃなかったら何もしない。
-	if(token->kind != TK_RESERVED || token->str[0] != op)
+	if(token->kind != TK_RESERVED || token->len != strlen(op) || memcmp(token->str, op, token->len))
 		return false;
 	token = token->next;
 	return true;
 }
 
 // トークンを読みすすめる
-void expect(char op)
+void expect(char *op)
 {
-	if (token->kind != TK_RESERVED || token->str[0] != op)
+	if (token->kind != TK_RESERVED || token->len != strlen(op) || memcmp(token->str, op, token->len))
 		error_at(token->str,"'%c'ではありません",op);
 	token = token->next;
 }
@@ -67,7 +68,9 @@ void expect(char op)
 int expect_number()
 {
 	if(token->kind != TK_NUM)
-		error_at(token->str, "数値ではありません");
+	{
+    	error_at(token->str, "数値ではありません");
+    }
 	int val = token->val;
 	token = token->next;
 	return val;
@@ -106,11 +109,12 @@ bool at_eof()
 
 
 // 新トークン生成
-Token *new_token(TokenKind kind, Token *cur, char*str)
+Token *new_token(TokenKind kind, Token *cur, char*str, int len)
 {
 	Token *tok = (Token*)calloc(1,sizeof(Token));
 	tok->kind = kind;
 	tok->str = str;
+    tok->len = len;
 	cur->next = tok;
 	return tok;
 }
@@ -132,10 +136,18 @@ Token *tokenize()
 			continue;
 		}
 
-		// 次の文字が記号の場合
-		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')')
+        // 次の文字が１文字の記号の場合
+        if(strncmp(p, ">=", 2) == 0 || strncmp(p, "<=", 2) == 0 || strncmp(p, "==", 2) == 0 || strncmp(p, "!=", 2) == 0 )
+        {
+            cur = new_token(TK_RESERVED, cur, p++, 2);
+            p++;    // ２文字からなる記号なので、ポインタは２つすすめる。
+            continue;
+        }
+
+		// 次の文字が１文字の記号の場合
+		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>')
 		{
-			cur = new_token(TK_RESERVED, cur, p++);
+			cur = new_token(TK_RESERVED, cur, p++, 1);
 			continue;
 		}
 
@@ -143,7 +155,7 @@ Token *tokenize()
 		if (isdigit(*p))
 		{
     
-			cur = new_token(TK_NUM, cur, p);
+			cur = new_token(TK_NUM, cur, p, 0);
 			cur->val = strtol(p, &p, 10);
 			continue;
 		}
@@ -151,6 +163,6 @@ Token *tokenize()
 		error_at(p, "トークナイズできません");
 	}
 
-	new_token(TK_EOF, cur, p);
+	new_token(TK_EOF, cur, p, 1);
 	return head.next;
 }
