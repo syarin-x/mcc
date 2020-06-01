@@ -1,43 +1,4 @@
-#include    "inc.h"
-
-// -------------------------------------------------------------
-// 型定義
-// トークンの種類
-typedef enum {
-	TK_RESERVED,
-	TK_NUM,
-	TK_EOF,
-} TokenKind;
-
-typedef struct Token Token;
-
-// トークンの構造体定義
-struct Token {
-	TokenKind kind;		// トークンの型
-	Token *next;		// 次の入力トークン
-	int val;			// kind がTK_NUMのときの数値
-	char *str;			// トークンの文字列
-    int len;            // トークンの長さ
-};
-
-// 現在分析中のトークン
-Token *token;
-
-// 入力プログラム
-char *user_input;
-
-// -------------------------------------------------------------
-// プロトタイプ宣言
-bool consume(char *op);
-void expect(char *op);
-int expect_number(void);
-void error_at(char *loc, char *fmt, ...);
-void error(char *fmt, ...);
-bool at_eof();
-Token *new_token(TokenKind kind, Token *cur, char*str, int len);
-Token *tokenize();
-
-
+#include    "mcc.h"
 
 // -------------------------------------------------------------
 // 関数定義
@@ -54,6 +15,16 @@ bool consume(char *op)
 		return false;
 	token = token->next;
 	return true;
+}
+
+// トークンが変数なら読みすすめる
+Token* consume_ident()
+{
+    if(token->kind != TK_IDENT)
+        return NULL;
+    Token* ret = token;
+    token = token->next;
+    return ret;
 }
 
 // トークンを読みすすめる
@@ -136,6 +107,14 @@ Token *tokenize()
 			continue;
 		}
 
+        // 次の文字が変数の場合
+        if('a' <= *p && *p <= 'z')
+        {
+            cur = new_token(TK_IDENT, cur, p++, 1);
+            cur->len = 1;
+            continue;
+        }
+
         // 次の文字が１文字の記号の場合
         if(strncmp(p, ">=", 2) == 0 || strncmp(p, "<=", 2) == 0 || strncmp(p, "==", 2) == 0 || strncmp(p, "!=", 2) == 0 )
         {
@@ -145,7 +124,7 @@ Token *tokenize()
         }
 
 		// 次の文字が１文字の記号の場合
-		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>')
+		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>' || *p == ';' || *p == '=')
 		{
 			cur = new_token(TK_RESERVED, cur, p++, 1);
 			continue;

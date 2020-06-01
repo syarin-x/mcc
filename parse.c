@@ -1,41 +1,6 @@
-#include    "token.h"
-#include    "inc.h"
+#include    "mcc.h"
 
-// -------------------------------------------------------------
-// 型定義
-typedef enum{
-    ND_ADD, // +
-    ND_SUB, // -
-    ND_MUL, // *
-    ND_DIV, // /
-    ND_EQA, // ==
-    ND_NEQ, // !=
-    ND_GTH, // <
-    ND_GTE, // <=
-    ND_NUM, // num
-} NodeKind;
 
-typedef struct Node Node;
-
-struct Node{
-    NodeKind kind;
-    Node* lhs;
-    Node* rhs;
-    int val;
-};
-
-// -------------------------------------------------------------
-// プロトタイプ宣言
-Node* new_node(NodeKind kind, Node* lhs, Node* rhs);
-Node* new_node_num(int val);
-Node* expr();
-Node* equality();
-Node* relational();
-Node* add();
-Node *mul();
-Node *primary();
-Node *unary();
-void gen(Node * node);
 
 
 // -------------------------------------------------------------
@@ -59,9 +24,33 @@ Node* new_node_num(int val)
     return node;
 }
 
+void program()
+{
+    int i = 0;
+    while(!at_eof())
+        code[i++] = stmt();
+    code[i] = NULL;
+}
+
+Node* stmt()
+{
+    Node* node = expr();
+    expect(";");
+    return node;
+}
+
 Node* expr()
 {
-    return equality();
+    return assign();
+}
+
+Node* assign()
+{
+    Node* node = equality();
+
+    if(consume("="))
+        node = new_node(ND_ASSIGN, node, assign());
+    return node;
 }
 
 Node* equality()
@@ -147,6 +136,17 @@ Node *primary()
         expect(")");
         return node;
     }
+
+    // 次のトークンが変数なら、トークンアドレスを受け取る
+    Token *tok = consume_ident();
+    if(tok != NULL)
+    {
+        Node* node = calloc(1, sizeof(Node));
+        node->kind = ND_LVAR,
+        node->offset = (tok->str[0] - 'a' + 1) * 8;
+        return node;
+    }
+
     return new_node_num(expect_number());
 }
 
@@ -163,10 +163,26 @@ Node *unary()
 
 void gen(Node * node)
 {
-    if(node->kind == ND_NUM)
+    switch(node->kind)
     {
-        printf("  push %d\n", node->val);
-        return;
+        case ND_NUM:
+            printf("  push %d\n", node->val);
+            return;
+        case ND_LVAR:
+            gen_lval(node);
+            printf("  pop rax\n");
+            printf("  mov rax, [rax]\n");
+            printf("  push rax\n");
+            return;
+        case ND_ASSIGN:
+            gen_lval(node->lhs);
+            gen(node->rhs);
+
+            printf("  pop rdi\n");
+            printf("  pop rax\n");
+            printf("  mov [rax], rdi\n");
+            printf("  push rdi\n");
+            return;
     }
 
     gen(node->lhs);
@@ -218,5 +234,15 @@ void gen(Node * node)
             break;
     }
     
+    printf("  push rax\n");
+}
+
+void gen_lval(Node* node)
+{
+    if(node->kind != ND_LVAR)
+        error("代入の左辺値が変数ではありません");
+    
+    printf("  mov rax, rbp\n");
+    printf("  sub rax, %d\n", node->offset);
     printf("  push rax\n");
 }
