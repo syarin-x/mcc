@@ -17,7 +17,6 @@ assert() {
 }
 
 assert 42 "return 42;"
-assert 41 "return  12 + 34 - 5 ;"
 assert 47 "return 5+6*7;"
 assert 15 "return 5*(9-6);"
 assert 0 "return -3*5+15;"
@@ -27,5 +26,5 @@ assert 0 "return 67<35-25;"
 assert 1 "return 6*7+3>=5*5;"
 assert 60 "ai=3;b=4*5;ai = ai * b;return ai;"
 assert 5 "if(7>5) return 5; else return 19;"
-
+assert 10 "i = 0;while(i<10) i=i+1; return i;"
 echo OK

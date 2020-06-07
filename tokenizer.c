@@ -31,31 +31,8 @@ Token* consume_ident()
 // --------------------------------------
 // read token if it is match TOKEN_TYPE
 // --------------------------------------
-bool consume_return()
-{
-    if(token->kind != TK_RETURN)
-        return false;
-    token = token->next;
-    return true;
-}
-
-// --------------------------
-// read token if it is TK_IF
-// --------------------------
-bool consume_if()
-{
-    if(token->kind != TK_IF)
-        return false;
-    token = token->next;
-    return true;
-}
-
-// --------------------------
-// read token if it is TK_IF
-// --------------------------
-bool consume_else()
-{
-    if(token->kind != TK_ELSE)
+bool consume_type(TokenKind kind) {
+    if(token->kind != kind)
         return false;
     token = token->next;
     return true;
@@ -184,6 +161,13 @@ Token *tokenize()
         if(strncmp(p, "if", 2) == 0 && !is_alnum(p[2])) {
             cur = new_token(TK_IF, cur, p, 2);
             p += 2;
+            continue;
+        }
+
+        // 次がwhileかどうか
+        if(strncmp(p, "while", 5) == 0 && !is_alnum(p[5])) {
+            cur = new_token(TK_WHILE, cur, p, 5);
+            p += 5;
             continue;
         }
 

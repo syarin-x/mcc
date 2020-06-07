@@ -14,6 +14,7 @@ typedef enum {
     TK_RETURN,      // return
     TK_IF,
     TK_ELSE,
+    TK_WHILE,
 	TK_EOF,
 } TokenKind;
 
@@ -48,9 +49,7 @@ char *user_input;
 // プロトタイプ宣言
 bool consume(char *op);
 Token *consume_ident(void);
-bool consume_return(void);
-bool consume_if(void);
-bool consume_else(void);
+bool consume_type(TokenKind kind);
 
 void expect(char *op);
 int expect_number(void);
@@ -81,6 +80,7 @@ typedef enum{
     ND_LVAR,    // ローカル変数
     ND_RETURN,  // return
     ND_IF,      // if
+    ND_WHILE,   // while
 } NodeKind;
 
 typedef struct Node Node;
@@ -95,6 +95,7 @@ struct Node{
     Node* cond; // 条件
     Node* then; // 実行stmtたち
     Node* els;  // else Node -> ifがつながる。
+    Node* body; // whileの中の実行部分
 
     LVar* var;
     int val;

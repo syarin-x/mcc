@@ -85,22 +85,30 @@ Function *program()
 Node* stmt()
 {
     Node* node;
-    if(consume_return()) {
+    if(consume_type(TK_RETURN)) {
         node = calloc(1,sizeof(Node));
         node->kind = ND_RETURN;
         node->lhs = expr();
         expect(";");
         return node;
-    } else if(consume_if()) {
+    } else if(consume_type(TK_IF)) {
         node = calloc(1,sizeof(Node));
         node->kind = ND_IF;
         expect("(");
         node->cond = expr();
         expect(")");
         node->then = stmt();
-        if(consume_else()) {
+        if(consume_type(TK_ELSE)) {
             node->els = stmt();
         }
+        return node;
+    } else if(consume_type(TK_WHILE)) {
+        node = calloc(1,sizeof(Node));
+        node->kind = ND_WHILE;
+        expect("(");
+        node->cond = expr();
+        expect(")");
+        node->body = stmt();
         return node;
     } else {
         node = expr();
