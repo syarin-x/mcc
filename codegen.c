@@ -1,10 +1,15 @@
 #include "mcc.h"
 
+int if_num;
+
 // ----------------------
 // code generator main
 // ----------------------
 void codegen(Function* prog){
     
+    // ifラベルの通し番号初期化
+    if_num = 1;
+
     printf(".intel_syntax noprefix\n");
     printf(".global main\n");
     printf("main:\n");
@@ -69,6 +74,14 @@ void gen(Node* node)
             gen(node->lhs);
             printf("  pop rax\n");
             printf("  jmp .L.return\n");
+            return;
+        case ND_IF:
+            gen(node->cond);
+            printf("  pop rax\n");
+            printf("  cmp rax,0\n");
+            printf("  je  .L.end%d\n",if_num);
+            gen(node->then);
+            printf(".L.end%d:\n",if_num);
             return;
     }
 

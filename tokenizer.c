@@ -39,6 +39,17 @@ bool consume_return()
     return true;
 }
 
+// --------------------------
+// read token if it is TK_IF
+// --------------------------
+bool consume_if()
+{
+    if(token->kind != TK_IF)
+        return false;
+    token = token->next;
+    return true;
+}
+
 // --------------------------------
 // read token if it is expect
 // --------------------------------
@@ -155,6 +166,20 @@ Token *tokenize()
         if(strncmp(p, "return", 6) == 0 && !is_alnum(p[6])) {
             cur = new_token(TK_RETURN, cur, p, 6);
             p += 6;
+            continue;
+        }
+
+        // 次がifかどうか
+        if(strncmp(p, "if", 2) == 0 && !is_alnum(p[2])) {
+            cur = new_token(TK_IF, cur, p, 2);
+            p += 2;
+            continue;
+        }
+
+        // 次がelseかどうか
+        if(strncmp(p, "else", 4) == 0 && !is_alnum(p[4])) {
+            cur = new_token(TK_ELSE, cur, p, 4);
+            p+= 4;
             continue;
         }
 

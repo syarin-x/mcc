@@ -89,6 +89,16 @@ Node* stmt()
         node = calloc(1,sizeof(Node));
         node->kind = ND_RETURN;
         node->lhs = expr();
+        expect(";");
+        return node;
+    } else if(consume_if()) {
+        node = calloc(1,sizeof(Node));
+        node->kind = ND_IF;
+        expect("(");
+        node->cond = expr();
+        expect(")");
+        node->then = stmt();
+        return node;
     } else {
         node = expr();
     }
