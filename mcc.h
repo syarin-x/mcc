@@ -50,6 +50,7 @@ bool consume(char *op);
 Token *consume_ident(void);
 bool consume_return(void);
 bool consume_if(void);
+bool consume_else(void);
 
 void expect(char *op);
 int expect_number(void);

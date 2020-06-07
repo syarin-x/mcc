@@ -50,6 +50,17 @@ bool consume_if()
     return true;
 }
 
+// --------------------------
+// read token if it is TK_IF
+// --------------------------
+bool consume_else()
+{
+    if(token->kind != TK_ELSE)
+        return false;
+    token = token->next;
+    return true;
+}
+
 // --------------------------------
 // read token if it is expect
 // --------------------------------

@@ -1,6 +1,7 @@
 #include "mcc.h"
 
-int if_num;
+int if_end;
+int if_else;
 
 // ----------------------
 // code generator main
@@ -8,7 +9,8 @@ int if_num;
 void codegen(Function* prog){
     
     // ifラベルの通し番号初期化
-    if_num = 1;
+    if_end = 1;
+    if_else = 1;
 
     printf(".intel_syntax noprefix\n");
     printf(".global main\n");
@@ -75,14 +77,29 @@ void gen(Node* node)
             printf("  pop rax\n");
             printf("  jmp .L.return\n");
             return;
-        case ND_IF:
-            gen(node->cond);
-            printf("  pop rax\n");
-            printf("  cmp rax,0\n");
-            printf("  je  .L.end%d\n",if_num);
-            gen(node->then);
-            printf(".L.end%d:\n",if_num);
+        case ND_IF: {
+            int end_no = if_end++;
+            int els_no = if_else++;
+            if(node->els) {
+                gen(node->cond);
+                printf("  pop rax\n");
+                printf("  cmp rax,0\n");
+                printf("  je  .L.else.%d\n",els_no);
+                gen(node->then);
+                printf("  jmp .L.end.%d\n",end_no);
+                printf(".L.else.%d:\n", els_no);
+                gen(node->els);
+                printf(".L.end.%d:\n",end_no);
+            } else {
+                gen(node->cond);
+                printf("  pop rax\n");
+                printf("  cmp rax,0\n");
+                printf("  je  .L.end.%d\n",end_no);
+                gen(node->then);
+                printf(".L.end.%d:\n",end_no);                
+            }
             return;
+        }
     }
 
     gen(node->lhs);

@@ -98,6 +98,9 @@ Node* stmt()
         node->cond = expr();
         expect(")");
         node->then = stmt();
+        if(consume_else()) {
+            node->els = stmt();
+        }
         return node;
     } else {
         node = expr();
