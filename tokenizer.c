@@ -205,8 +205,7 @@ Token *tokenize()
         }
 
 		// 次の文字が１文字の記号の場合
-		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>' || *p == ';' || *p == '=')
-		{
+		if (ispunct(*p)) {
 			cur = new_token(TK_RESERVED, cur, p++, 1);
 			continue;
 		}
