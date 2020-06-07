@@ -92,6 +92,17 @@ void error(char *fmt, ...)
 	exit(1);
 }
 
+// ------------------
+//　デバッグ情報出力関数
+// ------------------
+void debug_print(char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	fprintf(stderr, "\n");
+}
+
 // ------------------------
 // ファイルの終端か判定する
 // ------------------------

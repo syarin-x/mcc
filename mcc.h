@@ -51,6 +51,7 @@ void expect(char *op);
 int expect_number(void);
 void error_at(char *loc, char *fmt, ...);
 void error(char *fmt, ...);
+void debug_print(char *fmt, ...);
 bool at_eof();
 Token *new_token(TokenKind kind, Token *cur, char*str, int len);
 Token *tokenize();
