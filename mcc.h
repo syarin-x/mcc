@@ -10,7 +10,8 @@
 typedef enum {
 	TK_RESERVED,
     TK_IDENT,
-	TK_NUM,
+	TK_NUM,         // 数値
+    TK_RETURN,      // return
 	TK_EOF,
 } TokenKind;
 
@@ -28,6 +29,16 @@ struct Token {
 // 現在分析中のトークン
 Token *token;
 
+
+// ローカル変数の型
+typedef struct LVar LVar;
+struct LVar{
+    LVar *next;
+    char *name;
+    int len;
+    int offset;
+};
+
 // 入力プログラム
 char *user_input;
 
@@ -35,6 +46,7 @@ char *user_input;
 // プロトタイプ宣言
 bool consume(char *op);
 Token *consume_ident(void);
+bool consume_return(void);
 void expect(char *op);
 int expect_number(void);
 void error_at(char *loc, char *fmt, ...);
@@ -42,10 +54,6 @@ void error(char *fmt, ...);
 bool at_eof();
 Token *new_token(TokenKind kind, Token *cur, char*str, int len);
 Token *tokenize();
-
-
-
-
 
 // """"""""""""""""""""""""""""""""""""""""""""""""
 // parcer
@@ -65,34 +73,35 @@ typedef enum{
     ND_NUM,     // num
     ND_ASSIGN,  // =
     ND_LVAR,    // ローカル変数
+    ND_RETURN,  // return
 } NodeKind;
 
 typedef struct Node Node;
 
 struct Node{
     NodeKind kind;
+    Node* next;
     Node* lhs;
     Node* rhs;
+    LVar* var;
     int val;
     int offset;
 };
 
 Node *code[100];
 
+typedef struct Function Function;
+struct Function{
+    Node *node;
+    LVar *locals;
+    int stack_size;
+};
+
 // -------------------------------------------------------------
 // プロトタイプ宣言
 Node* new_node(NodeKind kind, Node* lhs, Node* rhs);
 Node* new_node_num(int val);
-void program();
-Node* stmt();
-Node* expr();
-Node* assign();
-Node* equality();
-Node* relational();
-Node* add();
-Node *mul();
-Node *primary();
-Node *unary();
-void gen(Node * node);
+Function *program(void);
+void gen(Node* node);
 void gen_lval(Node *node);
-
+void codegen(Function *prog);

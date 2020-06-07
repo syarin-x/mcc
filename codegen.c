@@ -1,147 +1,135 @@
-#include    "mcc.h"
+#include "mcc.h"
 
-// -------------------------------------------------------------
-// 関数定義
-
-// トークンを読みすすめる
-bool consume(char *op)
-{
-	// 着目しているトークンが、期待している記号かどうか？
-	// 例えば、"+"を引数に渡して、次は足し算か？を判定するなどに使う
-	// （そして、足し算の処理をする）
-
-	// 記号の処理をしたいので、記号じゃなかったり、期待する記号じゃなかったら何もしない。
-	if(token->kind != TK_RESERVED || token->len != strlen(op) || memcmp(token->str, op, token->len))
-		return false;
-	token = token->next;
-	return true;
-}
-
-// トークンが変数なら読みすすめる
-Token* consume_ident()
-{
-    if(token->kind != TK_IDENT)
-        return NULL;
-    Token* ret = token;
-    token = token->next;
-    return ret;
-}
-
-// トークンを読みすすめる
-void expect(char *op)
-{
-	if (token->kind != TK_RESERVED || token->len != strlen(op) || memcmp(token->str, op, token->len))
-		error_at(token->str,"'%c'ではありません",op);
-	token = token->next;
-}
-
-// トークンが数値か？見て、数値ならトークンを返す。
-int expect_number()
-{
-	if(token->kind != TK_NUM)
-	{
-    	error_at(token->str, "数値ではありません");
-    }
-	int val = token->val;
-	token = token->next;
-	return val;
-}
-
-// エラー箇所を報告する
-void error_at(char *loc, char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap,fmt);
-
-	int pos = loc - user_input;
-	fprintf(stderr, "%s\n", user_input);
-	fprintf(stderr, "%*s", pos, "");
-	fprintf(stderr, "^");
-	vfprintf(stderr, fmt, ap);
-	fprintf(stderr, "\n");
-	exit(1);
-}
-
- //　エラー報告関数
-void error(char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
-	fprintf(stderr, "\n");
-	exit(1);
-}
-
-// ファイルの終端か判定する
-bool at_eof()
-{
-	return token->kind == TK_EOF;
-}
-
-
-// 新トークン生成
-Token *new_token(TokenKind kind, Token *cur, char*str, int len)
-{
-	Token *tok = (Token*)calloc(1,sizeof(Token));
-	tok->kind = kind;
-	tok->str = str;
-    tok->len = len;
-	cur->next = tok;
-	return tok;
-}
-
-// トークナイズ関数
-Token *tokenize()
-{
-	char *p = user_input;
-	Token head;
-	head.next = NULL;
-	Token *cur = &head;
-
-	while(*p) {
-
-		// 次の文字がスペースの場合
-		if(isspace(*p))
-		{
-			p++;
-			continue;
-		}
-
-        // 次の文字が変数の場合
-        if('a' <= *p && *p <= 'z')
-        {
-            cur = new_token(TK_IDENT, cur, p++, 1);
-            cur->len = 1;
-            continue;
-        }
-
-        // 次の文字が１文字の記号の場合
-        if(strncmp(p, ">=", 2) == 0 || strncmp(p, "<=", 2) == 0 || strncmp(p, "==", 2) == 0 || strncmp(p, "!=", 2) == 0 )
-        {
-            cur = new_token(TK_RESERVED, cur, p++, 2);
-            p++;    // ２文字からなる記号なので、ポインタは２つすすめる。
-            continue;
-        }
-
-		// 次の文字が１文字の記号の場合
-		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>' || *p == ';' || *p == '=')
-		{
-			cur = new_token(TK_RESERVED, cur, p++, 1);
-			continue;
-		}
-
-		// 次の文字が数値の場合    
-		if (isdigit(*p))
-		{
+// ----------------------
+// code generator main
+// ----------------------
+void codegen(Function* prog){
     
-			cur = new_token(TK_NUM, cur, p, 0);
-			cur->val = strtol(p, &p, 10);
-			continue;
-		}
+    printf(".intel_syntax noprefix\n");
+    printf(".global main\n");
+    printf("main:\n");
 
-		error_at(p, "トークナイズできません");
-	}
+    // prologue
+    printf("  push rbp\n");
+    printf("  mov rbp, rsp\n");
+    printf("  sub rsp, %d\n", prog->stack_size);
 
-	new_token(TK_EOF, cur, p, 1);
-	return head.next;
+    for(Node *node = prog->node; node; node = node->next)
+        gen(node);
+
+    // Epilogue
+    printf(".L.return:\n");
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
+    printf("  ret\n");
+}
+
+static void gen_addr(Node *node)
+{
+    if(node->kind == ND_LVAR)
+    {        
+        printf("  lea rax,[rbp-%d]\n", node->var->offset);
+        printf("  push rax\n");
+        return;
+    }
+
+    error("not an lvalue");
+}
+
+static void load(void) {
+    printf("  pop rax\n");
+    printf("  mov rax, [rax]\n");
+    printf("  push rax\n");
+}
+
+static void store(void) {
+    printf("  pop rdi\n");
+    printf("  pop rax\n");
+    printf("  mov [rax], rdi\n");
+    printf("  push rdi\n");
+}
+
+void gen(Node* node)
+{
+    switch(node->kind)
+    {
+        case ND_NUM:
+            printf("  push %d\n", node->val);
+            return;
+        case ND_LVAR:
+            gen_addr(node);
+            load();
+            return;
+        case ND_ASSIGN:
+            gen_addr(node->lhs);
+            gen(node->rhs);
+            store();
+            return;
+        case ND_RETURN:
+            gen(node->lhs);
+            printf("  pop rax\n");
+            printf("  jmp .L.return\n");
+            return;
+    }
+
+    gen(node->lhs);
+    gen(node->rhs);
+
+    printf("  pop rdi\n");
+    printf("  pop rax\n");
+
+    switch(node->kind)
+    {
+        case ND_ADD:
+            printf("  add rax, rdi\n");
+            break;
+        case ND_SUB:
+            printf("  sub rax, rdi\n");
+            break;
+        case ND_MUL:
+            printf("  imul rax, rdi\n");
+            break;
+        case ND_DIV:
+            // idiv命令は、raxレジスタとrdxレジスタを足し合わせたものを、idiv命令の引数で割って、
+            // 商をraxレジスタに、余りをrdxレジスタにセットする仕様。
+            // cqo命令は、raxレジスタの64bit値を128bitに引き伸ばしてraxとrdxに入れる。
+            // o + raxをrdiで割る、といった実装になっている。
+            printf("  cqo\n");
+            printf("  idiv rdi\n");
+            break;
+        case ND_EQA:
+            printf("  cmp rax, rdi\n");
+            printf("  sete al\n");
+            printf("  movzb rax,al\n");
+            break;
+        case ND_NEQ:
+            printf("  cmp rax, rdi\n");
+            printf("  setne al\n");
+            printf("  movzb rax,al\n");
+            break;
+        case ND_GTH:
+            printf("  cmp rax, rdi\n");
+            printf("  setl al\n");
+            printf("  movzb rax,al\n");
+            break;
+        case ND_GTE:
+            printf("  cmp rax, rdi\n");
+            printf("  setle al\n");
+            printf("  movzb rax,al\n");
+            break;
+        default:
+            break;
+    }
+    
+    printf("  push rax\n");
+}
+
+void gen_lval(Node* node)
+{
+    if(node->kind != ND_LVAR)
+        error("代入の左辺値が変数ではありません");
+    
+    printf("  mov rax, rbp\n");
+    printf("  sub rax, %d\n", node->offset);
+    printf("  push rax\n");
 }

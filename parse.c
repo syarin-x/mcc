@@ -1,12 +1,34 @@
 #include    "mcc.h"
 
+LVar *locals;
 
+// ---------------------------------------------------------------------------
+// local function definition
+// ---------------------------------------------------------------------------
+static Node *stmt(void);
+static Node *expr(void);
+static Node *assign(void);
+static Node *equality(void);
+static Node *relational(void);
+static Node *add(void);
+static Node *mul(void);
+static Node *unary(void);
+static Node *primary(void);
 
+// ----------------
+// 変数の検索
+// ----------------
+static LVar *find_lvar(Token *tok) {
+    for(LVar *var = locals; var; var = var->next)
+        if(strlen(var->name) == tok->len && !strncmp(tok->str, var->name, tok->len))
+            return var;
+    
+    return NULL;
+}
 
-// -------------------------------------------------------------
-// 関数定義
-
+// ------------
 // nodeの作成
+// ------------
 Node* new_node(NodeKind kind, Node* lhs, Node* rhs){
     Node* node = (Node*)calloc(1,sizeof(Node));
     node->kind = kind;
@@ -15,7 +37,9 @@ Node* new_node(NodeKind kind, Node* lhs, Node* rhs){
     return node;
 }
 
+// ------------------
 // node(数値)の作成
+// ------------------
 Node* new_node_num(int val)
 {
     Node* node = (Node*)calloc(1,sizeof(Node));
@@ -24,17 +48,51 @@ Node* new_node_num(int val)
     return node;
 }
 
-void program()
+// ----------------------
+// create node(variant)
+// ----------------------
+LVar* new_lvar(char* name)
 {
-    int i = 0;
+    LVar *var = calloc(1,sizeof(LVar));
+    var->next = locals;
+    var->name = name;
+    locals = var;
+    return var;
+}
+
+// -----------------------
+// analyze program
+// -----------------------
+Function *program()
+{
+    locals = NULL;
+
+    Node head = {};
+    Node *cur = &head;
+
     while(!at_eof())
-        code[i++] = stmt();
-    code[i] = NULL;
+    {
+        cur->next = stmt();
+        cur = cur->next;
+    }
+    
+    Function *prog = calloc(1,sizeof(Function));
+    prog->node = head.next;
+    prog->locals = locals;
+    return prog;
 }
 
 Node* stmt()
 {
-    Node* node = expr();
+    Node* node;
+    if(consume_return()) {
+        node = calloc(1,sizeof(Node));
+        node->kind = ND_RETURN;
+        node->lhs = expr();
+    } else {
+        node = expr();
+    }
+        
     expect(";");
     return node;
 }
@@ -139,11 +197,20 @@ Node *primary()
 
     // 次のトークンが変数なら、トークンアドレスを受け取る
     Token *tok = consume_ident();
-    if(tok != NULL)
+    if(tok)
     {
-        Node* node = calloc(1, sizeof(Node));
-        node->kind = ND_LVAR,
-        node->offset = (tok->str[0] - 'a' + 1) * 8;
+        // find lvar from local variable list
+        LVar *lvar = find_lvar(tok);
+        if(!lvar) {
+            // missing lvar
+            lvar = new_lvar(strndup(tok->str, tok->len));
+            // error_at(tok->str, "新しい変数です\n");
+        }
+
+        Node* node = calloc(1,sizeof(Node));
+        node->kind = ND_LVAR;
+        node->var = lvar;
+
         return node;
     }
 
@@ -159,90 +226,4 @@ Node *unary()
         return new_node(ND_SUB, new_node_num(0), primary());
     else
         return primary();    
-}
-
-void gen(Node * node)
-{
-    switch(node->kind)
-    {
-        case ND_NUM:
-            printf("  push %d\n", node->val);
-            return;
-        case ND_LVAR:
-            gen_lval(node);
-            printf("  pop rax\n");
-            printf("  mov rax, [rax]\n");
-            printf("  push rax\n");
-            return;
-        case ND_ASSIGN:
-            gen_lval(node->lhs);
-            gen(node->rhs);
-
-            printf("  pop rdi\n");
-            printf("  pop rax\n");
-            printf("  mov [rax], rdi\n");
-            printf("  push rdi\n");
-            return;
-    }
-
-    gen(node->lhs);
-    gen(node->rhs);
-
-    printf("  pop rdi\n");
-    printf("  pop rax\n");
-
-    switch(node->kind)
-    {
-        case ND_ADD:
-            printf("  add rax, rdi\n");
-            break;
-        case ND_SUB:
-            printf("  sub rax, rdi\n");
-            break;
-        case ND_MUL:
-            printf("  imul rax, rdi\n");
-            break;
-        case ND_DIV:
-            // idiv命令は、raxレジスタとrdxレジスタを足し合わせたものを、idiv命令の引数で割って、
-            // 商をraxレジスタに、余りをrdxレジスタにセットする仕様。
-            // cqo命令は、raxレジスタの64bit値を128bitに引き伸ばしてraxとrdxに入れる。
-            // o + raxをrdiで割る、といった実装になっている。
-            printf("  cqo\n");
-            printf("  idiv rdi\n");
-            break;
-        case ND_EQA:
-            printf("  cmp rax, rdi\n");
-            printf("  sete al\n");
-            printf("  movzb rax,al\n");
-            break;
-        case ND_NEQ:
-            printf("  cmp rax, rdi\n");
-            printf("  setne al\n");
-            printf("  movzb rax,al\n");
-            break;
-        case ND_GTH:
-            printf("  cmp rax, rdi\n");
-            printf("  setl al\n");
-            printf("  movzb rax,al\n");
-            break;
-        case ND_GTE:
-            printf("  cmp rax, rdi\n");
-            printf("  setle al\n");
-            printf("  movzb rax,al\n");
-            break;
-        default:
-            break;
-    }
-    
-    printf("  push rax\n");
-}
-
-void gen_lval(Node* node)
-{
-    if(node->kind != ND_LVAR)
-        error("代入の左辺値が変数ではありません");
-    
-    printf("  mov rax, rbp\n");
-    printf("  sub rax, %d\n", node->offset);
-    printf("  push rax\n");
 }
