@@ -115,6 +115,24 @@ void gen(Node* node)
             printf(".L.end.%d:\n",end_no);
             return;
         }
+        case ND_FOR: {
+            int begin_no = L_begin++;
+            int end_no = L_end++;
+            if(node->init)
+                gen(node->init);
+            printf(".L.begin.%d:\n",begin_no);
+            if(node->cond) {
+                gen(node->cond);
+                printf("  pop rax\n");
+                printf("  cmp rax,0\n");
+                printf("  je  .L.end.%d\n",end_no);
+            }
+            gen(node->body);
+            gen(node->upload);
+            printf("  jmp .L.begin.%d\n",begin_no);
+            printf(".L.end.%d:\n",end_no);
+            return;
+        }
 
     }
 

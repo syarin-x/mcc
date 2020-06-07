@@ -15,6 +15,7 @@ typedef enum {
     TK_IF,
     TK_ELSE,
     TK_WHILE,
+    TK_FOR,
 	TK_EOF,
 } TokenKind;
 
@@ -81,6 +82,7 @@ typedef enum{
     ND_RETURN,  // return
     ND_IF,      // if
     ND_WHILE,   // while
+    ND_FOR,     // for
 } NodeKind;
 
 typedef struct Node Node;
@@ -96,6 +98,8 @@ struct Node{
     Node* then; // 実行stmtたち
     Node* els;  // else Node -> ifがつながる。
     Node* body; // whileの中の実行部分
+    Node* init; // forの初期化式
+    Node* upload; // forの更新式
 
     LVar* var;
     int val;

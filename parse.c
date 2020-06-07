@@ -110,6 +110,24 @@ Node* stmt()
         expect(")");
         node->body = stmt();
         return node;
+    } else if(consume_type(TK_FOR)) {
+        node = calloc(1,sizeof(Node));
+        node->kind = ND_FOR;
+        expect("(");
+        if(!consume(";")) {
+            node->init = expr();
+            expect(";");
+        }
+        if(!consume(";")) {
+            node->cond = expr();
+            expect(";");
+        }
+        if(!consume(")")) {
+            node->upload = expr();
+            expect(")");
+        }
+        node->body = stmt();
+        return node;
     } else {
         node = expr();
     }

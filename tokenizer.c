@@ -178,6 +178,13 @@ Token *tokenize()
             continue;
         }
 
+        // 次がforかどうか
+        if(strncmp(p, "for", 3) == 0 && !is_alnum(p[3])) {
+            cur = new_token(TK_FOR, cur, p, 3);
+            p+= 3;
+            continue;
+        }
+
         // 次の文字が変数の場合
         if(is_alpha(*p))
         {
