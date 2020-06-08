@@ -133,7 +133,13 @@ void gen(Node* node)
             printf(".L.end.%d:\n",end_no);
             return;
         }
-
+        case ND_BLOCK:
+            while(node->next)
+            {
+                gen(node->next);
+                node = node->next;
+            }
+            return;
     }
 
     gen(node->lhs);

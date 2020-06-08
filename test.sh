@@ -27,5 +27,5 @@ assert 1 "return 6*7+3>=5*5;"
 assert 60 "ai=3;b=4*5;ai = ai * b;return ai;"
 assert 5 "if(7>5) return 5; else return 19;"
 assert 10 "i = 0;while(i<10) i=i+1; return i;"
-assert 45 "sum = 0;for(i = 0;i < 10;i = i + 1) sum = sum + i;return sum;"
+assert 165 "sum = 0;re = 0;for(i = 0;i < 10;i = i + 1){sum = sum + i; re = re + sum;} return re;"
 echo OK

@@ -78,11 +78,12 @@ typedef enum{
     ND_GTE,     // <=
     ND_NUM,     // num
     ND_ASSIGN,  // =
-    ND_LVAR,    // ローカル変数
+    ND_LVAR,    // local var
     ND_RETURN,  // return
     ND_IF,      // if
     ND_WHILE,   // while
     ND_FOR,     // for
+    ND_BLOCK,   // block statement
 } NodeKind;
 
 typedef struct Node Node;

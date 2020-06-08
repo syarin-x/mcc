@@ -128,6 +128,17 @@ Node* stmt()
         }
         node->body = stmt();
         return node;
+    } else if(consume("{")) {
+        // block statement
+        node = calloc(1,sizeof(Node));
+        node->kind = ND_BLOCK;
+        Node* node_list = node;
+        while(!consume("}"))
+        {
+            node_list->next = stmt();
+            node_list = node_list->next;
+        }
+        return node;
     } else {
         node = expr();
     }
