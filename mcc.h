@@ -84,6 +84,7 @@ typedef enum{
     ND_WHILE,   // while
     ND_FOR,     // for
     ND_BLOCK,   // block statement
+    ND_FUNC,    // function
 } NodeKind;
 
 typedef struct Node Node;
@@ -101,6 +102,8 @@ struct Node{
     Node* body; // whileの中の実行部分
     Node* init; // forの初期化式
     Node* upload; // forの更新式
+
+    char* funcname; // 関数名
 
     LVar* var;
     int val;

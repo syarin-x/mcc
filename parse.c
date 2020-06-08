@@ -249,19 +249,29 @@ Node *primary()
     Token *tok = consume_ident();
     if(tok)
     {
-        // find lvar from local variable list
-        LVar *lvar = find_lvar(tok);
-        if(!lvar) {
-            // missing lvar
-            lvar = new_lvar(strndup(tok->str, tok->len));
-            // error_at(tok->str, "新しい変数です\n");
+        if(consume("(")) {  // function
+            expect(")");
+
+            Node* node = calloc(1,sizeof(Node));
+            node->kind = ND_FUNC;
+            node->funcname = strndup(tok->str, tok->len);
+
+            return node;
         }
+        else {  // variant
+            // find lvar from local variable list
+            LVar *lvar = find_lvar(tok);
+            if(!lvar) {
+                // missing lvar
+                lvar = new_lvar(strndup(tok->str, tok->len));
+            }
 
-        Node* node = calloc(1,sizeof(Node));
-        node->kind = ND_LVAR;
-        node->var = lvar;
+            Node* node = calloc(1,sizeof(Node));
+            node->kind = ND_LVAR;
+            node->var = lvar;
 
-        return node;
+            return node;
+        }
     }
 
     return new_node_num(expect_number());
