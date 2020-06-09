@@ -4,6 +4,8 @@ int L_end;
 int L_else;
 int L_begin;
 
+static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+
 // ----------------------
 // code generator main
 // ----------------------
@@ -140,10 +142,21 @@ void gen(Node* node)
                 node = node->next;
             }
             return;
-        case ND_FUNC:
+        case ND_FUNC: {
+            int args = 0;
+            for(Node* cur = node->args; cur; cur = cur->next) {
+                // 一つずつコンパイルしてスタックに積んでいく
+                gen(cur);
+                args++;
+            }
+
+            for(int i = args - 1; i >= 0 ; --i) {
+                printf("  pop %s\n", argreg[i]);
+            }
             printf("  call %s\n", node->funcname);
             printf("  push rax\n");
             return;
+        }
     }
 
     gen(node->lhs);

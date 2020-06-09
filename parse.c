@@ -250,15 +250,28 @@ Node *primary()
     if(tok)
     {
         if(consume("(")) {  // function
-            expect(")");
+            if(!consume(")")) { // exist parameters
+                Node* node = calloc(1,sizeof(Node));
+                node->kind = ND_FUNC;
+                node->funcname = strndup(tok->str, tok->len);
+                node->args = assign();
+                
+                Node *cur = node->args;
+                while(consume(",")) {
+                    cur->next = assign();
+                    cur = cur->next;
+                }
+                expect(")");
+                return node;
+            } else {
+                // expect(")"); trueなら読み進めている
+                Node* node = calloc(1,sizeof(Node));
+                node->kind = ND_FUNC;
+                node->funcname = strndup(tok->str, tok->len);
 
-            Node* node = calloc(1,sizeof(Node));
-            node->kind = ND_FUNC;
-            node->funcname = strndup(tok->str, tok->len);
-
-            return node;
-        }
-        else {  // variant
+                return node;
+            }
+        } else {  // variant
             // find lvar from local variable list
             LVar *lvar = find_lvar(tok);
             if(!lvar) {

@@ -104,6 +104,7 @@ struct Node{
     Node* upload; // forの更新式
 
     char* funcname; // 関数名
+    Node* args;     //paramater
 
     LVar* var;
     int val;
