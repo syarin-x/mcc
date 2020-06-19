@@ -3,6 +3,7 @@ cat <<EOF | gcc -xc -c -o tmp2.o -
 int ret3() { return 3; }
 int ret5() { return 5; }
 int multi2mix(int a,int b) {return a * b; }
+int add3(int a,int b,int c) {return a + b + c; }
 int sub(int x, int y) { return x-y; }
 int add6(int a, int b, int c, int d, int e, int f) {
   return a+b+c+d+e+f;
@@ -43,4 +44,5 @@ assert 5 'return ret5();'
 assert 15 'return multi2mix(3,5);'
 assert 21 'return add6(1,2,3,4,5,6);'
 assert 2 'return sub(5, 3);'
+assert 6 'return add3(1,2,3);'
 echo OK

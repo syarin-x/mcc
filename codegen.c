@@ -3,6 +3,7 @@
 int L_end;
 int L_else;
 int L_begin;
+int L_sequence;
 
 static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
@@ -15,6 +16,7 @@ void codegen(Function* prog){
     L_end = 1;
     L_else = 1;
     L_begin = 1;
+    L_sequence = 1;
 
     printf(".intel_syntax noprefix\n");
     printf(".global main\n");
@@ -153,8 +155,22 @@ void gen(Node* node)
             for(int i = args - 1; i >= 0 ; --i) {
                 printf("  pop %s\n", argreg[i]);
             }
+
+            // スタックポインタを16byte区切りにする
+            int seq = L_sequence++;
+            printf("  mov rax, rsp\n");             // スタックポインタをraxレジスタにコピー
+            printf("  and rax, 15\n");              // andを取って、チェックする。16byteなら、ゼロになっている（ゼロフラグON）
+            printf("  jnz .L.call.%d\n", seq);      // ゼロでないときは、ジャンプしてアライメントする
+            printf("  mov rax, 0\n");               // 関数コールの前にraxをクリア
             printf("  call %s\n", node->funcname);
-            printf("  push rax\n");
+            printf("  jmp .L.end.%d\n", seq);       // コールが終わったので、終了まで飛ぶ
+            printf(".L.call.%d:\n", seq);
+            printf("  sub rsp, 8\n");               // 今は8バイト単位の調整だけでいい。
+            printf("  mov rax, 0\n");
+            printf("  call %s\n", node->funcname);
+            printf("  add rsp, 8\n");               // スタックポインタをもとに戻しておく。
+            printf(".L.end.%d:\n", seq);
+            printf("  push rax\n");                 // raxに返り値があるのでスタックに積む
             return;
         }
     }
